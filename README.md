@@ -27,6 +27,8 @@ References: [GitHub port forwarding](https://docs.github.com/en/codespaces/devel
 
 ## If the backend will not connect
 
+- **Login reports “Cross-origin requests are not allowed”:** the earlier version did not handle Codespaces rewriting the Origin header. Stop the server with Ctrl+C, run `git pull --ff-only`, then `npm run preview`, and refresh the preview page. The updated version accepts only the configured Codespace and its local forwarding aliases, while keeping CSRF and cross-site checks enabled.
+
 - **Address ends in `github.io/cmsstudio3/`:** this is GitHub Pages, which serves static files. Open your Codespace from [your Codespaces list](https://github.com/codespaces), run `git pull` followed by `npm run preview`, then open port **3000** from **Ports**. The connected preview address ends in `-3000.app.github.dev`.
 - **Preview was working and stopped:** restart the Codespace and rerun `npm run preview`. Leave the terminal running. The preview is not an always-on hosted service.
 - **Terminal shows an error:** copy that error and the URL you opened when requesting help. Do not include passwords. If Node is older than 24.14, rebuild the dev container.

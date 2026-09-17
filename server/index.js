@@ -1,3 +1,4 @@
+import { isAllowedRequestOrigin } from './request-origin.js';
 import { runtimeConfig } from './config.js';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -44,7 +45,7 @@ export function createApplication({ dbPath = resolve(root, 'data/studio.sqlite')
       const url = new URL(req.url, allowedOrigin), path = url.pathname, method = req.method;
       if (!['GET', 'HEAD'].includes(method)) {
         requireValue(req.headers['x-studio-request'] === '1', 'Missing request verification header.', 403);
-        requireValue(!req.headers.origin || req.headers.origin === allowedOrigin, 'Cross-origin requests are not allowed.', 403);
+        requireValue(isAllowedRequestOrigin(req, allowedOrigin, localProxyHosts), `This request does not match the workspace address. Open ${allowedOrigin} and sign in again. If this is already your address, restart the preview after pulling the latest code.`, 403);
         requireValue(!req.headers['sec-fetch-site'] || ['same-origin', 'none'].includes(req.headers['sec-fetch-site']), 'Cross-site requests are not allowed.', 403);
       }
       if (path === '/api/health' && method === 'GET') return send(res, 200, { ok: true });

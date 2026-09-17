@@ -7,7 +7,7 @@ import { createApplication } from '../server/index.js';
 
 const dir=await mkdtemp(join(tmpdir(),'studio-browser-'));
 const origin='http://localhost:3198';
-const app=createApplication({dbPath:join(dir,'browser.sqlite'),origin});
+const app=createApplication({dbPath:join(dir,'browser.sqlite'),origin,localProxyHosts:['127.0.0.1:3198']});
 await new Promise(resolve=>app.server.listen(3198,'127.0.0.1',resolve));
 let browser;
 try{
@@ -92,9 +92,18 @@ try{
   await page.getByRole('button',{name:'Update password',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('#new-password').value==='');
   await page.locator('#logout-button').click();await page.locator('#auth-submit').waitFor();
+  // Simulate a Codespaces proxy rewriting Origin for sign-in and later writes.
+  await page.route('**/api/**',route=>{
+    if(route.request().method()==='GET')return route.continue();
+    return route.continue({headers:{...route.request().headers(),origin:'http://127.0.0.1:3198'}});
+  });
   await page.locator('#auth-email').fill('taylor@example.com');
   await page.locator('#auth-password').fill('changed-browser-password-456');
   await page.locator('#auth-submit').click();await page.locator('nav').waitFor();
+  await page.locator('nav [data-nav="settings"]').click();
+  await page.locator('#settings-workspace').fill('Forwarded preview verified');
+  await page.getByRole('button',{name:'Save changes',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('.workspace strong').textContent==='Forwarded preview verified');
   const staticPage=await browser.newPage();
   let staticApiRequests=0;
   await staticPage.route('https://studio-test.github.io/**',async route=>{

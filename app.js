@@ -8,7 +8,7 @@ let state={version:1,revision:0,settings:{name:'Workspace owner',workspace:'Stud
 let page='overview',filter='All content',query='',toastTimer,csrf='',signedIn=false,busy=false,setupRequired=false;
 async function api(path, options={}) {
   let response;
-  try { response=await fetch(path,{...options,headers:{'Content-Type':'application/json','X-Studio-Request':'1','X-CSRF-Token':csrf,...options.headers},credentials:'same-origin'}); }
+  try { response=await fetch(path,{...options,headers:{'Content-Type':'application/json','X-Studio-Request':'1','X-Studio-Origin':location.origin,'X-CSRF-Token':csrf,...options.headers},credentials:'same-origin'}); }
   catch { throw new Error('Cannot reach the server. Your changes have not been saved. Check the connection and try again.'); }
   let data;try{data=await response.json();}catch{throw new Error('This address is not serving the Studio API. Start the Node server with npm start and open its address.');}
   if(!response.ok){const error=new Error(data.error||'The request failed.');error.status=response.status;throw error;}
