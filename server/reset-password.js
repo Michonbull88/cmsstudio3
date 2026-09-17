@@ -1,3 +1,4 @@
+import { promptPassword } from './prompt.js';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createStore } from './store.js';
@@ -6,30 +7,6 @@ import { credentials } from './validation.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 if (!process.stdin.isTTY) throw new Error('Run password recovery in an interactive terminal.');
-function promptPassword(label) {
-  return new Promise(resolve => {
-    process.stdout.write(label);
-    let value = '';
-    process.stdin.setRawMode(true);
-    process.stdin.resume();
-    process.stdin.setEncoding('utf8');
-    const onData = chunk => {
-      for (const char of chunk) {
-        if (char === '\u0003') { process.stdin.setRawMode(false); process.exit(130); }
-        if (char === '\r' || char === '\n') {
-          process.stdin.removeListener('data', onData);
-          process.stdin.setRawMode(false);
-          process.stdin.pause();
-          process.stdout.write('\n');
-          resolve(value); return;
-        }
-        if (char === '\u007f') value = value.slice(0, -1);
-        else if (char >= ' ' && value.length < 256) value += char;
-      }
-    };
-    process.stdin.on('data', onData);
-  });
-}
 const store = createStore(resolve(process.env.DATA_DIR || resolve(root, 'data'), 'studio.sqlite'));
 try {
   const owner = store.db.prepare('SELECT email FROM owner WHERE id=1').get();

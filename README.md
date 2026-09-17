@@ -2,6 +2,29 @@
 
 A connected content workspace with a Node.js backend, SQLite database, owner authentication, media storage, and server-side publishing. The existing dashboard, editor, calendar, media library, and settings use the backend directly.
 
+## Test on GitHub
+
+### Automated tests
+
+[Open the test runs](https://github.com/Michonbull88/cmsstudio3/actions/workflows/test.yml).
+GitHub Actions runs the backend and Chromium browser tests on every push and pull request. You can also select **Run workflow** in the Actions tab. Test databases are temporary; no real workspace data or secrets are required.
+
+### Run a browser preview with Codespaces
+
+1. [Create a Codespace for this repository](https://codespaces.new/Michonbull88/cmsstudio3) using the `main` branch. Existing Codespaces need **Codespaces: Rebuild Container** after pulling this configuration.
+2. Wait for the container and dependencies to finish installing.
+3. In the Codespaces terminal, run `npm run preview`.
+4. On first use, enter your name, email, and a new password in that terminal. Password input is hidden. Later starts reuse the same account.
+5. Open **Ports**, find **3000 — Studio CMS preview**, and click **Open in Browser**. Sign in with the account you just created.
+
+Keep port 3000's visibility **Private**. The preview URL is detected automatically; use its HTTPS browser address. The internal port protocol stays HTTP because the forwarding service provides external HTTPS. The preview works while the Codespace and server are running. Stop the Codespace after testing; GitHub account usage limits and billing apply.
+
+The preview database lives in that Codespace's ignored `data/` folder. It is separate from your computer's database and is not pushed to GitHub. Export a backup before deleting the Codespace. To run browser tests inside Codespaces, first run `npx playwright install --with-deps chromium`, then `npm run test:browser`.
+
+If using `npm start` directly on a fresh Codespace, first run `npm run setup-owner`: browser-based account creation intentionally stays restricted to direct local connections. `npm run preview` handles this setup for you. Forgot the preview password? Run `npm run reset-password` in its terminal.
+
+References: [GitHub port forwarding](https://docs.github.com/en/codespaces/developing-in-a-codespace/forwarding-ports-in-your-codespace), [Codespaces environment](https://docs.github.com/en/codespaces/developing-in-a-codespace/default-environment-variables-for-your-codespace).
+
 ## Start
 
 Requires **Node.js 24.14 or newer**.
@@ -72,7 +95,7 @@ For a different local port:
 PORT=3001 npm start
 ```
 
-For hosting, create the owner locally first, provide a persistent disk, run one Node process under a process supervisor, and put it behind an HTTPS reverse proxy. Set `APP_ORIGIN` to the public HTTPS origin and preserve its Host header at the proxy. HTTPS origins enable Secure cookies. The exact Host and browser Origin must match the configured address. Set `HOST=0.0.0.0` only when external connections are intended. No hosting account or public deployment has been configured.
+For hosting, create the owner locally first, provide a persistent disk, run one Node process under a process supervisor, and put it behind an HTTPS reverse proxy. Set `APP_ORIGIN` to the public HTTPS origin and preserve its Host header at the proxy. HTTPS origins enable Secure cookies. The exact Host and browser Origin must match the configured address. Set `HOST=0.0.0.0` only when external connections are intended. Codespaces preview configuration is included; no permanent public deployment has been configured.
 
 This is a single-owner CMS. It does not include team roles, invitation emails, multi-tenant isolation, rich-text/media embedding, or horizontal scaling. All authenticated sessions have owner access. Workspace saves send an atomic snapshot, so this implementation is intended for modest content libraries. Browser refreshes run every 15 seconds and pause while editing or entering settings.
 

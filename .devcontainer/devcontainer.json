@@ -1,0 +1,21 @@
+{
+  "name": "Studio CMS",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:5-24-bookworm",
+  "remoteUser": "node",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Studio CMS preview",
+      "onAutoForward": "notify",
+      "protocol": "http"
+    }
+  },
+  "postCreateCommand": "npm ci",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

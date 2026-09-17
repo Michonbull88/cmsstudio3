@@ -1,3 +1,4 @@
+import { runtimeConfig } from './config.js';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +11,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const escape = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const publicHtml = (workspace, entry) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escape(entry?.title || workspace.settings.workspace)}</title><meta name="description" content="${escape(entry?.excerpt || 'The latest stories from our studio.')}"><link rel="stylesheet" href="/style.css"><style>body{padding:50px 24px}.publication{max-width:780px;margin:auto}.publication header{border-bottom:1px solid #dfe5d9;padding-bottom:24px;margin-bottom:40px}.publication h1{font:700 36px Manrope,sans-serif;letter-spacing:-1px}.publication h2{font-size:23px}.publication article{padding:24px 0;border-bottom:1px solid #dfe5d9}.publication p{line-height:1.9;white-space:pre-wrap;color:#65715e}.publication time{font-size:12px;color:#89908b}</style></head><body><main class="publication"><header><a href="/site">${escape(workspace.settings.workspace)}</a></header>${entry ? `<article><time>${escape(entry.category)} · ${escape(new Date(entry.date).toLocaleDateString('en-GB'))}</time><h1>${escape(entry.title)}</h1><p>${escape(entry.excerpt)}</p><p>${escape(entry.body)}</p></article><p><a href="/site">← All stories</a></p>` : `<h1>Stories from the studio.</h1>${workspace.entries.filter(e => e.status === 'Published').sort((a,b) => b.date.localeCompare(a.date)).map(e => `<article><time>${escape(e.category)} · ${escape(new Date(e.date).toLocaleDateString('en-GB'))}</time><h2><a href="/site/${encodeURIComponent(e.id)}">${escape(e.title)}</a></h2><p>${escape(e.excerpt)}</p><a class="text-link" href="/site/${encodeURIComponent(e.id)}">Read story →</a></article>`).join('') || '<p>Our first story is on its way.</p>'}`}</main></body></html>`;
 
-export function createApplication({ dbPath = resolve(root, 'data/studio.sqlite'), origin = 'http://localhost:3000', schedulerMs = 10000, secureCookies = false } = {}) {
+export function createApplication({ dbPath = resolve(root, 'data/studio.sqlite'), origin = 'http://localhost:3000', schedulerMs = 10000, secureCookies = false, localProxyHosts = [] } = {}) {
   const store = createStore(dbPath);
   const allowedOrigin = new URL(origin).origin;
   const attempts = new Map();
@@ -38,7 +39,8 @@ export function createApplication({ dbPath = resolve(root, 'data/studio.sqlite')
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     try {
-      requireValue(req.headers.host === new URL(allowedOrigin).host, 'Use the configured workspace address.', 403);
+      const fromLoopback = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
+      requireValue(req.headers.host === new URL(allowedOrigin).host || (fromLoopback && localProxyHosts.includes(req.headers.host)), 'Use the configured workspace address.', 403);
       const url = new URL(req.url, allowedOrigin), path = url.pathname, method = req.method;
       if (!['GET', 'HEAD'].includes(method)) {
         requireValue(req.headers['x-studio-request'] === '1', 'Missing request verification header.', 403);
@@ -141,10 +143,9 @@ export function createApplication({ dbPath = resolve(root, 'data/studio.sqlite')
   return { server, store };
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const port = Number(process.env.PORT || 3000), host = process.env.HOST || '127.0.0.1';
-  const origin = process.env.APP_ORIGIN || `http://localhost:${port}`;
-  if (process.env.NODE_ENV === 'production' && !origin.startsWith('https://')) throw new Error('Production requires an HTTPS APP_ORIGIN.');
-  const { server } = createApplication({ dbPath: resolve(process.env.DATA_DIR || resolve(root, 'data'), 'studio.sqlite'), origin, secureCookies: origin.startsWith('https://') });
+  const config = runtimeConfig();
+  const { port, host, origin } = config;
+  const { server } = createApplication({ ...config, dbPath: resolve(process.env.DATA_DIR || resolve(root, 'data'), 'studio.sqlite') });
   server.listen(port, host, () => console.log(`Studio CMS running at ${origin}\nPublic stories: ${origin}/site`));
   server.on('error', error => { console.error(error.message); process.exitCode = 1; });
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { server.close(); server.closeIdleConnections(); });
