@@ -25,6 +25,13 @@ If using `npm start` directly on a fresh Codespace, first run `npm run setup-own
 
 References: [GitHub port forwarding](https://docs.github.com/en/codespaces/developing-in-a-codespace/forwarding-ports-in-your-codespace), [Codespaces environment](https://docs.github.com/en/codespaces/developing-in-a-codespace/default-environment-variables-for-your-codespace).
 
+## If the backend will not connect
+
+- **Address ends in `github.io/cmsstudio3/`:** this is GitHub Pages, which serves static files. Open your Codespace from [your Codespaces list](https://github.com/codespaces), run `git pull` followed by `npm run preview`, then open port **3000** from **Ports**. The connected preview address ends in `-3000.app.github.dev`.
+- **Preview was working and stopped:** restart the Codespace and rerun `npm run preview`. Leave the terminal running. The preview is not an always-on hosted service.
+- **Terminal shows an error:** copy that error and the URL you opened when requesting help. Do not include passwords. If Node is older than 24.14, rebuild the dev container.
+- **Preview shows “Use the configured workspace address”:** use the exact HTTPS address printed by the server. If you previously set `APP_ORIGIN`, remove that override from the preview terminal with `unset APP_ORIGIN` before restarting.
+
 ## Start
 
 Requires **Node.js 24.14 or newer**.

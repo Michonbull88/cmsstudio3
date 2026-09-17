@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, access } from 'node:fs/promises';
+import { mkdtemp, rm, access, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApplication } from '../server/index.js';
@@ -95,6 +95,20 @@ try{
   await page.locator('#auth-email').fill('taylor@example.com');
   await page.locator('#auth-password').fill('changed-browser-password-456');
   await page.locator('#auth-submit').click();await page.locator('nav').waitFor();
+  const staticPage=await browser.newPage();
+  let staticApiRequests=0;
+  await staticPage.route('https://studio-test.github.io/**',async route=>{
+    const path=new URL(route.request().url()).pathname;
+    if(path.startsWith('/api/'))staticApiRequests++;
+    const file=path.endsWith('/app.js')?'app.js':path.endsWith('/style.css')?'style.css':path==='/cmsstudio3/'?'index.html':null;
+    if(!file)return route.fulfill({status:404,body:'Not found'});
+    await route.fulfill({status:200,contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html',body:await readFile(new URL('../'+file,import.meta.url),'utf8')});
+  });
+  await staticPage.goto('https://studio-test.github.io/cmsstudio3/');
+  await staticPage.locator('#connection-help').waitFor();
+  assert.equal(await staticPage.locator('#auth-form').isVisible(),false);
+  assert.equal(staticApiRequests,0,'Static hosting should not offer an unusable login or request an absent backend.');
+  await staticPage.close();
   assert.equal(errors.length,0,errors.join('\n'));
   console.log('Browser checks passed: owner setup, authentication, durable CRUD, public stories, uploads, conflict recovery, offline recovery, backup round-trip, all mobile screens, password change, and sign-out/sign-in.');
 }finally{await browser?.close();await new Promise(resolve=>app.server.close(resolve));await rm(dir,{recursive:true,force:true});}
