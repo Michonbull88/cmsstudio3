@@ -1,0 +1,17 @@
+node_modules/
+data/
+.env
+*.log
+.DS_Store
+
+# Local configuration, databases, and exported workspace backups
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+studio-backup-*.json
+studio-browser-backup.json
+playwright-report/
+test-results/
